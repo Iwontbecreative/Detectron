@@ -45,6 +45,7 @@ import datasets.dummy_datasets as dummy_datasets
 import utils.c2 as c2_utils
 import utils.logging
 import utils.vis as vis_utils
+import utils.vis_and_remove as blackout
 
 c2_utils.import_detectron_ops()
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -84,6 +85,9 @@ def parse_args():
     )
     parser.add_argument(
         'im_or_folder', help='image or folder of images', default=None
+    )
+    parser.add_argument(
+        'pixel', help='a pixel from which we want to remove objects', default=None, required=True
     )
     if len(sys.argv) == 1:
         parser.print_help()
@@ -126,7 +130,8 @@ def main(args):
                 'rest (caches and auto-tuning need to warm up)'
             )
 
-        vis_utils.vis_one_image(
+        # Call own function instead of vis_utils!
+        blackout.blackout_one_image(
             im[:, :, ::-1],  # BGR -> RGB for visualization
             im_name,
             args.output_dir,
@@ -137,7 +142,8 @@ def main(args):
             box_alpha=0.3,
             show_class=True,
             thresh=0.7,
-            kp_thresh=2
+            kp_thresh=2,
+            pixel=args.pixel
         )
 
 
