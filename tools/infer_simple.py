@@ -32,6 +32,11 @@ import logging
 import os
 import sys
 import time
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+from matplotlib.patches import Polygon
 
 from caffe2.python import workspace
 
@@ -84,10 +89,13 @@ def parse_args():
         type=str
     )
     parser.add_argument(
-        'im_or_folder', help='image or folder of images', default=None
+        '--pixel',
+        dest='pixel',
+        help='a pixel from which we want to remove objects',
+        default=None, type=str
     )
     parser.add_argument(
-        'pixel', help='a pixel from which we want to remove objects', default=None, required=True
+        'im_or_folder', help='image or folder of images', default=None
     )
     if len(sys.argv) == 1:
         parser.print_help()
@@ -117,6 +125,31 @@ def convert_from_cls_format(cls_boxes, cls_segms, cls_keyps):
         classes += [j] * len(cls_boxes[j])
     return boxes, segms, keyps, classes
 
+def black_out(im, pixels_mask):
+    # Setup image
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.axis('off')
+    fig.add_axes(ax)
+    ax.imshow(im)
+
+
+    img = np.ones(im.shape)
+
+    _, contour, hier = cv2.findContours(
+                 pixels_mask.copy(), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    for c in contour:
+        polygon = Polygon(
+                        c.reshape((-1, 2)),
+                        fill=True, facecolor="black",
+                        edgecolor='black', linewidth=1.2,
+                        alpha=1)
+        ax.add_patch(polygon)
+    # Save, hardcode for now
+    fig.savefig("/home/tjf324/img_blacked_out.png", dpi=200)
+    return fig
+
 def blackout_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
         kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
@@ -140,15 +173,17 @@ def blackout_one_image(
 
     #This is where we find the pixels!
     x, y = pixel
-    for i in range(masks.shape[3]):
+    for i in range(masks.shape[2]):
+        # We found a match! Lets find coordinates to black out
         if masks[x, y, i]:
-            # We found a match! Lets find coordinates to black out
-
             class_found = classes[i]
             score = boxes[i, -1]
-            return black_out(im_name, masks[:, :, i]), class_found, score
+            fig = black_out(im, masks[:, :, i])
+            save_location = output_dir + im_name + "blacked_at_{},{}.{}".format(x, y, ext) 
+            fig.savefig(save_location, dpi=dpi)
+            return save_location, masks[:, :, i], class_found, score
     else:
-        return "Did not find object at position {},{}".format(x, y)
+        raise Exception("Did not find object at position {},{}".format(x, y))
 
 
 
@@ -200,7 +235,7 @@ def main(args):
             show_class=True,
             thresh=0.7,
             kp_thresh=2,
-            pixel=args.pixel
+            pixel=eval(args.pixel)
         )
 
 
