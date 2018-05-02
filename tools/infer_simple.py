@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from PIL import Image
 
 from collections import defaultdict
 import argparse
@@ -147,13 +148,17 @@ def black_out(im, pixels_mask):
                         alpha=1)
         ax.add_patch(polygon)
     # Save, hardcode for now
-    fig.savefig("/home/tjf324/img_blacked_out.png", dpi=200)
     return fig
+
+def image_from_mask(mask):
+    im = Image.new(mode="1", mask.shape)
+    im.putdata(mask)
+    return im
 
 def blackout_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
         kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
-        ext='pdf', pixel=None):
+        ext='png', pixel=None):
     """Visual debugging of detections."""
     try:
         assert pixel and len(pixel) == 2
@@ -179,9 +184,12 @@ def blackout_one_image(
             class_found = classes[i]
             score = boxes[i, -1]
             fig = black_out(im, masks[:, :, i])
-            save_location = output_dir + im_name + "blacked_at_{},{}.{}".format(x, y, ext) 
+            save_location = output_dir + im_name + "blacked_at_{},{}.{}".format(x, y, ext)
             fig.savefig(save_location, dpi=dpi)
-            return save_location, masks[:, :, i], class_found, score
+            save_location_mask = output_dir + im_name + "masked_at_{},{}.{}".format(x, y, ext)
+            mask_image = image_from_mask(masks[:, :, i])
+            mask_image.save(save_location_mask)
+            return save_location, save_location_mask, class_found, score
     else:
         raise Exception("Did not find object at position {},{}".format(x, y))
 
