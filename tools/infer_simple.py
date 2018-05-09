@@ -154,7 +154,7 @@ def generate_image(im, pixels_mask, dpi, mask_only=False):
 def blackout_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
         kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
-        ext='png', pixel=None):
+        ext='jpg', pixel=None):
     """Visual debugging of detections."""
     try:
         assert pixel and len(pixel) == 2
