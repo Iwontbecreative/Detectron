@@ -126,17 +126,18 @@ def convert_from_cls_format(cls_boxes, cls_segms, cls_keyps):
         classes += [j] * len(cls_boxes[j])
     return boxes, segms, keyps, classes
 
-def black_out(im, pixels_mask, dpi):
+def generate_image(im, pixels_mask, dpi, mask_only=False):
     # Setup image
     fig = plt.figure(frameon=False)
     fig.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.axis('off')
     fig.add_axes(ax)
-    ax.imshow(im)
-
-
-    img = np.ones(im.shape)
+    if mask_only:
+    	new_img = np.zeros(im.shape[:2])
+    	ax.imshow(new_img, cmap='Greys')
+    else:
+    	ax.imshow(im)
 
     _, contour, hier = cv2.findContours(
                  pixels_mask.copy(), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
@@ -149,11 +150,6 @@ def black_out(im, pixels_mask, dpi):
         ax.add_patch(polygon)
     # Save, hardcode for now
     return fig
-
-def image_from_mask(mask):
-    im = Image.new(mode="1", size=mask.shape)
-    im.putdata(mask)
-    return im
 
 def blackout_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
@@ -183,13 +179,13 @@ def blackout_one_image(
         if masks[x, y, i]:
             class_found = classes[i]
             score = boxes[i, -1]
-            fig = black_out(im, masks[:, :, i], dpi=dpi)
+            fig = generate_image(im, masks[:, :, i], dpi=dpi, mask_only=False)
             out_im_name = im_name.split('/')[-1].split('.')[0]
             save_location = output_dir + out_im_name + "_blacked.{}".format(ext)
             fig.savefig(save_location, dpi=dpi)
             save_location_mask = output_dir + out_im_name + "_masked.{}".format(ext)
-            mask_image = image_from_mask(masks[:, :, i])
-            mask_image.save(save_location_mask)
+            mask_image = generate_image(im, masks[:, :, i], dpi=dpi, mask_only=True)
+            mask_image.savefig(save_location_mask, dpi=dpi)
             return save_location, save_location_mask, class_found, score
     else:
         raise Exception("Did not find object at position {},{}".format(x, y))
