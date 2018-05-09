@@ -126,7 +126,7 @@ def convert_from_cls_format(cls_boxes, cls_segms, cls_keyps):
         classes += [j] * len(cls_boxes[j])
     return boxes, segms, keyps, classes
 
-def black_out(im, pixels_mask):
+def black_out(im, pixels_mask, dpi):
     # Setup image
     fig = plt.figure(frameon=False)
     fig.set_size_inches(im.shape[1] / dpi, im.shape[0] / dpi)
@@ -151,7 +151,7 @@ def black_out(im, pixels_mask):
     return fig
 
 def image_from_mask(mask):
-    im = Image.new(mode="1", mask.shape)
+    im = Image.new(mode="1", size=mask.shape)
     im.putdata(mask)
     return im
 
@@ -183,10 +183,11 @@ def blackout_one_image(
         if masks[x, y, i]:
             class_found = classes[i]
             score = boxes[i, -1]
-            fig = black_out(im, masks[:, :, i])
-            save_location = output_dir + im_name + "blacked_at_{},{}.{}".format(x, y, ext)
+            fig = black_out(im, masks[:, :, i], dpi=dpi)
+            out_im_name = im_name.split('/')[-1].split('.')[0]
+            save_location = output_dir + out_im_name + "_blacked.{}".format(ext)
             fig.savefig(save_location, dpi=dpi)
-            save_location_mask = output_dir + im_name + "masked_at_{},{}.{}".format(x, y, ext)
+            save_location_mask = output_dir + out_im_name + "_masked.{}".format(ext)
             mask_image = image_from_mask(masks[:, :, i])
             mask_image.save(save_location_mask)
             return save_location, save_location_mask, class_found, score
