@@ -1,4 +1,4 @@
-pickle_objects/
+configs/weights/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
